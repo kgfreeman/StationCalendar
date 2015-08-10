@@ -11,14 +11,14 @@ import org.jsoup.safety.Cleaner;
 import org.jsoup.safety.Whitelist;
 import org.jsoup.select.Elements;
 
-public class StationCalendar {
+public class StationCalendar2 {
 
 	private String unitNumber = "";
 	private Document doc;
 	private String finalCalendar = "";
 	private String monthAndYear = "";
 
-	StationCalendar(File input) {
+	StationCalendar2(File input) {
 
 		try { // open the input file
 			doc = Jsoup.parse(input, "UTF-8");
@@ -190,7 +190,7 @@ public class StationCalendar {
 
 		System.out.println(input + " >");
 		
-		StationCalendar sc = new StationCalendar(input);
+		StationCalendar2 sc = new StationCalendar2(input);
 
 		System.out.println(sc.toString());
 		
