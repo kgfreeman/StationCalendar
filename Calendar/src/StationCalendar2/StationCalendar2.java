@@ -54,8 +54,8 @@ public class StationCalendar2 {
 
 		// add table caption
 		finalCalendar += " <caption>" 
-					+ monthAndYear 
-					+ "</caption>\n";
+				+ monthAndYear 
+				+ "</caption>\n";
 
 		// add table header row
 		finalCalendar += " <tr>\n  <th>Sunday</th>\n  <th>Monday</th>\n  <th>Tuesday</th>\n  <th>Wednesday</th>\n  <th>Thursday</th>\n  <th>Friday</th>\n  <th>Saturday</th> </tr>\n ";
@@ -74,20 +74,20 @@ public class StationCalendar2 {
 		int dayCounter = 0;
 
 		doc.select("font > b").remove(); // remove unit number from each
-											// employee line
+		// employee line
 		doc.select("a > b").remove(); // remove unit number for open shifts
 
 		doc.select("td > div").remove(); // remove unit number from each day
 
 		doc.select(".MyItems").addClass("CalendarItems"); // makes your days
-															// look like all the
-															// others
+		// look like all the
+		// others
 		doc.select(".MyItems").removeClass("MyItems");
 
 		// looking for the many different keys that have been used to indicate
 		// open shifts and adding class=open
 		doc.getElementsByAttributeValue("color", "red")
-				.select(".CalendarItems").addClass("open");
+		.select(".CalendarItems").addClass("open");
 		doc.select(".PickupItems").wrap("<font class=\"CalendarItems open\">");
 		doc.select(".PickupLinkM").wrap("<font class=\"CalendarItems open\">");
 
@@ -121,9 +121,9 @@ public class StationCalendar2 {
 
 		// remove license levels / titles from entries
 		localString = localString.replaceAll("[SJ]R MEDIC :", " "); // jr and sr
-																	// medics
+		// medics
 		localString = localString.replaceAll("EMT(/S)? :", " "); // emt and
-																	// emt/s
+		// emt/s
 		localString = localString.replaceAll("Supervisor :", ""); // supervisor
 
 		// kills all the (00:00) formatted shift duration time spans
@@ -143,7 +143,7 @@ public class StationCalendar2 {
 		int date, previousDate = 0;
 
 		localDoc = doc; 
-		
+
 		// find dates from the previous month that are at the beginning of the calendar
 		for (Element day : localDoc.select("td > span:eq(0)")) {
 			date = Integer.parseInt(day.text().toString());
@@ -151,7 +151,7 @@ public class StationCalendar2 {
 			if ((date == 1) && (previousDate == 0)) {
 				shadeDays = Boolean.logicalXor(shadeDays, true); 
 			} // checks to see if the first day of the month falls on the first
-				// day of the calendar
+			// day of the calendar
 
 			if (date < previousDate) { // toggles shading at the end of the month
 				shadeDays = Boolean.logicalXor(shadeDays, true);
@@ -159,7 +159,7 @@ public class StationCalendar2 {
 
 			if (shadeDays == true)
 				day.parent()
-				   .addClass("NON"); // NON is the class in the TD that is shaded in stylesheet
+				.addClass("NON"); // NON is the class in the TD that is shaded in stylesheet
 
 			previousDate = date;
 		}
@@ -179,26 +179,34 @@ public class StationCalendar2 {
 	 */
 	public static void main(String[] args) {
 
-		
-		Scanner keyboard = new Scanner(System.in);
-		System.out.print(" <!  source HTML filename ? ");
-		
-		String inputFileName = keyboard.next();
-		
+		String inputFileName;
+
+		if (args.length == 1) {
+			inputFileName = args[0];
+		}
+		else {
+
+
+			Scanner keyboard = new Scanner(System.in);
+			System.out.print(" <!  source HTML filename ? ");
+
+			inputFileName = keyboard.next();
+			System.out.println(inputFileName + " >");
+		}
+
 		File input = new File("C:/Users/HVA/Documents/KevinFreeman/Calendar/"
 				+ inputFileName);
 
-		System.out.println(input + " >");
-		
+
 		StationCalendar2 sc = new StationCalendar2(input);
 
 		System.out.println(sc.toString());
-		
+
 		System.exit(0);
-		
-		
-	/*	
-		
+
+
+		/*	
+
 		if (args.length != 1) {
 			System.out
 					.println("usage: java StationCalendar.jar -jar source_html_file");
@@ -211,6 +219,6 @@ public class StationCalendar2 {
 		StationCalendar sc = new StationCalendar(input);
 
 		System.out.println(sc.toString());
-*/
+		 */
 	}
 }
