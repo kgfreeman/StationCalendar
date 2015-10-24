@@ -2,6 +2,7 @@ package StationCalendar2;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 import org.jsoup.Jsoup;
@@ -13,23 +14,23 @@ import org.jsoup.select.Elements;
 
 public class StationCalendar2 {
 
+	private Document calendarDocument;
 	private String unitNumber = "";
-	private Document doc;
 	private String monthAndYear = "";
 
 	StationCalendar2(File input) {
 
-		try { // open the input file
-			doc = Jsoup.parse(input, "UTF-8");
+		try {
+			calendarDocument = Jsoup.parse(input, "UTF-8");
 		} catch (IOException e) {
-			System.out.println("ARGH !!!!!!!!!!!!!!!");
+			System.out.println("Unable to open File : " + input.toString());
 			e.printStackTrace();
-		} finally {
 		}
-
-		unitNumber = doc.select("font.CalendarItems b").first().text();
-
-		monthAndYear = doc.select(".ScheduleViewLabel").text();
+		
+		
+		unitNumber = calendarDocument.select("font.CalendarItems b").first().text();
+		
+		monthAndYear = calendarDocument.select(".ScheduleViewLabel").text();
 		monthAndYear = monthAndYear.replaceAll("\\u00A0", ""); // removes &nbsp;
 
 		// / create a whitelist of allowed html tags and attributes
@@ -41,137 +42,125 @@ public class StationCalendar2 {
 
 		// / run document thru the whitelist cleaner
 		Cleaner cleanDoc = new Cleaner(whitey);
-		doc = cleanDoc.clean(doc);
+		calendarDocument = cleanDoc.clean(calendarDocument);
 
-		// makeCalendar();
-		// add table head
-		String finalCalendar = "<!DOCTYPE html><html>\n<head>\n<title>"
-				+ unitNumber
-				+ " "
-				+ monthAndYear
+		
+		String finalCalendar = 
+				"<!DOCTYPE html><html>\n<head>\n<title>" + unitNumber + " " + monthAndYear
 				+ "</title>\n<link rel=\"stylesheet\" type=\"text/css\" href=\"CalendarStylesheet.css\">\n</head>\n<body>\n<table>\n";
 
-		// add table caption
-		finalCalendar += " <caption>" 
-				+ monthAndYear 
-				+ "</caption>\n";
+		finalCalendar += " <caption>" + monthAndYear + "</caption>\n";
 
-		// add table header row
-		finalCalendar += " <tr>\n  <th>Sunday</th>\n  <th>Monday</th>\n  <th>Tuesday</th>\n  <th>Wednesday</th>\n  <th>Thursday</th>\n  <th>Friday</th>\n  <th>Saturday</th> </tr>\n ";
-
-		//
+		String headerRow =  " <tr>\n  <th>Sunday</th>\n  <th>Monday</th>\n  <th>Tuesday</th>\n  <th>Wednesday</th>\n  <th>Thursday</th>\n  <th>Friday</th>\n  <th>Saturday</th> </tr>\n ";	
+		
+		finalCalendar += headerRow;
 		finalCalendar += getAndCleanTable2();
 
-		doc = Jsoup.parse(finalCalendar);
-		shadeDays();
+		calendarDocument = Jsoup.parse(finalCalendar);
+		shadeDaysThatAreInOtherMonths();
 
 	}
 
 	// ////////////////////////////////////// DOM version
 	public String getAndCleanTable2() {
-		String localString = "<tr>";
+		String tableToBeReturned = "<tr>";
 		int dayCounter = 0;
 
-		doc.select("font > b").remove(); // remove unit number from each
-		// employee line
-		doc.select("a > b").remove(); // remove unit number for open shifts
+		String unitNumberDOM_onEmployeeLine = "font > b";
+		String unitNumberForOpenShiftsDOM = "a > b";
+		String unitNumberDOMforEachDay = "td > div";
+		
+		calendarDocument.select(unitNumberDOM_onEmployeeLine).remove(); 
+		calendarDocument.select(unitNumberForOpenShiftsDOM).remove(); 
+		calendarDocument.select(unitNumberDOMforEachDay).remove();
+	
+		
+		
+		String classTagOfItemsInMySchedule = ".MyItems";
+		String classTagOfGeneralItems = "CalendarItems";		
+		
+		calendarDocument.select(classTagOfItemsInMySchedule).addClass(classTagOfGeneralItems);
+		calendarDocument.select(classTagOfItemsInMySchedule).removeClass(classTagOfItemsInMySchedule);
 
-		doc.select("td > div").remove(); // remove unit number from each day
-
-		doc.select(".MyItems").addClass("CalendarItems"); // makes your days
-		// look like all the
-		// others
-		doc.select(".MyItems").removeClass("MyItems");
-
+		
 		// looking for the many different keys that have been used to indicate
 		// open shifts and adding class=open
-		doc.getElementsByAttributeValue("color", "red")
-		.select(".CalendarItems").addClass("open");
-		doc.select(".PickupItems").wrap("<font class=\"CalendarItems open\">");
-		doc.select(".PickupLinkM").wrap("<font class=\"CalendarItems open\">");
+		calendarDocument.getElementsByAttributeValue("color", "red").select(".CalendarItems").addClass("open");
+		calendarDocument.select(".PickupItems").wrap("<font class=\"CalendarItems open\">");
+		calendarDocument.select(".PickupLinkM").wrap("<font class=\"CalendarItems open\">");
 
-		Elements items = doc.getElementsByTag("font");
-		for (Element thing : items) {
+		
+		Elements items = calendarDocument.getElementsByTag("font");
+		for (Element item : items) {
 			// every seven days add close and open table row tags
-			if (thing.hasClass("largeboldtext")
+			if (item.hasClass("largeboldtext")
 					&& (dayCounter % 7 == 0 && dayCounter > 0)) {
-				localString += "</tr>\n<tr>";
+				tableToBeReturned += "</tr>\n<tr>";
 			}
 
 			// this adds the open table data tag and adds the date span
-			if (thing.hasClass("largeboldtext")) {
-				localString += "\n<td><span>" + thing.text() + "</span> ";
+			if (item.hasClass("largeboldtext")) {
+				tableToBeReturned += "\n<td><span>" + item.text() + "</span> ";
 				dayCounter++;
 			}
 
 			// takes care of the person part of the table data
-			else if (thing.hasClass("CalendarItems")) {
-				if (thing.hasClass("open")) {
-					localString += "<span class=\"open\">";
+			else if (item.hasClass(classTagOfGeneralItems)) {
+				if (item.hasClass("open")) {
+					tableToBeReturned += "<span class=\"open\">";
 				} else {
-					localString += "<span>";
+					tableToBeReturned += "<span>";
 				}
-				localString += thing.text() + "</span>";
+				tableToBeReturned += item.text() + "</span>";
 			}
 		}
 
-		// //// clean up local string before returning it
-		localString = localString.replaceAll("\\u00A0", " "); // removes &nbsp;
 
-		// remove license levels / titles from entries
-		localString = localString.replaceAll("[SJ]R MEDIC :", " "); // jr and sr
-		// medics
-		localString = localString.replaceAll("EMT(/S)? :", " "); // emt and
-		// emt/s
-		localString = localString.replaceAll("Supervisor :", ""); // supervisor
+		tableToBeReturned = tableToBeReturned.replaceAll("\\u00A0", " "); // removes &nbsp;
+		
+		tableToBeReturned = tableToBeReturned.replaceAll("[SJ]R MEDIC :", " "); 
+		tableToBeReturned = tableToBeReturned.replaceAll("EMT(/S)? :", " ");
+		tableToBeReturned = tableToBeReturned.replaceAll("Supervisor :", "");
 
-		// kills all the (00:00) formatted shift duration time spans
-		localString = localString.replaceAll("(\\(\\d\\d:\\d\\d\\))", "");
-		// // kills all the (0:00) formatted shift duration time spans
-		localString = localString.replaceAll("(\\(\\d:\\d\\d\\))", "");
+		tableToBeReturned = tableToBeReturned.replaceAll("(\\(\\d\\d:\\d\\d\\))", "");  //(00:00) formatted shift duration time spans
+		tableToBeReturned = tableToBeReturned.replaceAll("(\\(\\d:\\d\\d\\))", "");  // (0:00) formatted shift duration time spans
 
-		return localString;
+		return tableToBeReturned;
 	}
 
-	// ////////////////////Shade days changes the background color of days at
-	// the start and end of the calendar that don't belong to the current month
-	// by adding a class to the table data tag that the stylesheet will shade
-	public void shadeDays() {
+	public void shadeDaysThatAreInOtherMonths() {
 		Document localDoc;
 		boolean shadeDays = true;
-		int date, previousDate = 0;
+		int todaysDate, yesterdaysDate = 0;
 
-		localDoc = doc; 
+		localDoc = calendarDocument; 
 
 		// find dates from the previous month that are at the beginning of the calendar
 		for (Element day : localDoc.select("td > span:eq(0)")) {
-			date = Integer.parseInt(day.text().toString());
+			todaysDate = Integer.parseInt(day.text().toString());
 
-			if ((date == 1) && (previousDate == 0)) {
+			if ((todaysDate == 1) && (yesterdaysDate == 0)) {
 				shadeDays = Boolean.logicalXor(shadeDays, true); 
 			} // checks to see if the first day of the month falls on the first
 			// day of the calendar
 
-			if (date < previousDate) { // toggles shading at the end of the month
+			if (todaysDate < yesterdaysDate) { // toggles shading at the end of the month
 				shadeDays = Boolean.logicalXor(shadeDays, true);
 			}
 
 			if (shadeDays == true) {
-				day.parent().addClass("NON"); // NON is the class in the TD that is shaded in stylesheet
-				day.parent().addClass("DayIsInAnotherMonth"); // NON is the class in the TD that is shaded in stylesheet
+				day.parent().addClass("DayIsInAnotherMonth");
 			}
-			previousDate = date;
+			yesterdaysDate = todaysDate;
 		}
-		doc = localDoc;
+		calendarDocument = localDoc;
 
 		return;
 	}
 
-	public String toString() {
-		return doc.toString();
-	}
+	public String toString() {  return calendarDocument.toString(); }
 
-	// /////////// MAIN
+
 	// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////main
 	/**
 	 * @param args
@@ -195,13 +184,10 @@ public class StationCalendar2 {
 			keyboard.close();
 		}
 
-		File input = new File("C:/Users/HVA/Documents/KevinFreeman/Calendar/"
-				+ inputFileName);
+		File inputFile = new File("C:/Users/HVA/Documents/KevinFreeman/Calendar/"+ inputFileName);
 
-
-		StationCalendar2 sc = new StationCalendar2(input);
-
-		System.out.println(sc.toString());
+		StationCalendar2 stationCalendar = new StationCalendar2(inputFile);
+		System.out.println(stationCalendar.toString());
 
 		System.exit(0);
 
