@@ -15,7 +15,6 @@ public class StationCalendar2 {
 
 	private String unitNumber = "";
 	private Document doc;
-	private String finalCalendar = "";
 	private String monthAndYear = "";
 
 	StationCalendar2(File input) {
@@ -157,10 +156,10 @@ public class StationCalendar2 {
 				shadeDays = Boolean.logicalXor(shadeDays, true);
 			}
 
-			if (shadeDays == true)
-				day.parent()
-				.addClass("NON"); // NON is the class in the TD that is shaded in stylesheet
-
+			if (shadeDays == true) {
+				day.parent().addClass("NON"); // NON is the class in the TD that is shaded in stylesheet
+				day.parent().addClass("DayIsInAnotherMonth"); // NON is the class in the TD that is shaded in stylesheet
+			}
 			previousDate = date;
 		}
 		doc = localDoc;
@@ -192,6 +191,8 @@ public class StationCalendar2 {
 
 			inputFileName = keyboard.next();
 			System.out.println(inputFileName + " >");
+			
+			keyboard.close();
 		}
 
 		File input = new File("C:/Users/HVA/Documents/KevinFreeman/Calendar/"
@@ -204,21 +205,5 @@ public class StationCalendar2 {
 
 		System.exit(0);
 
-
-		/*	
-
-		if (args.length != 1) {
-			System.out
-					.println("usage: java StationCalendar.jar -jar source_html_file");
-			System.exit(1);
-		}
-
-		File input = new File("C:/Users/HVA/Documents/KevinFreeman/Calendar/"
-				+ args[0]);
-
-		StationCalendar sc = new StationCalendar(input);
-
-		System.out.println(sc.toString());
-		 */
 	}
 }

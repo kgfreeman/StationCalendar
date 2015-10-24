@@ -1,0 +1,33 @@
+
+
+body {}
+
+table {width: 100%; table-layout:fixed; border-collapse:collapse; font-family: sans-serif;}
+
+caption {font-size: 2em; font-weight:bold; text-align: center; background-color:#fff;}
+
+tr:first-child {border: 1px solid black; height: 2em;} // sunday-satur labels
+
+tr {height: 5em;}
+
+th {font-weight: bold; font-size: 1.5em; height: 2em; background-color:#ccc;}
+
+td {border: 1px solid black; text-align:left; height: 6em; vertical-align:top; height: 6em;}
+
+#lm {background-color:#ccc;}
+
+.NON {background-color:#ccc;}
+
+.DayIsInAnotherMonth {background-color:#ccc;}
+
+.open {color: red;}
+
+span:first-child {text-align: left; font-weight:bold; font-size:1.5em; padding-left: 0.25em;}
+
+span {display:block; padding-left: 1.5em; font-size:.8em}
+
+p {}
+
+.UnitLabel {display: none;}
+
+b {    display: none;}
