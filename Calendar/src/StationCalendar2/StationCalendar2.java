@@ -20,9 +20,10 @@ public class StationCalendar2 {
 	private String unitNumber;
 	private String monthAndYear;
 
-	StationCalendar2(File input) {
+	
+	StationCalendar2(File HTMLSourceFile) {
 
-		openRawHTMLCalendarAsADocument(input);
+		openRawHTMLCalendarAsADocument(HTMLSourceFile);
 		getUnitNumber();
 		getMonthAndYear();
 		
@@ -32,6 +33,47 @@ public class StationCalendar2 {
 		shadeTheDaysFromOtherMonths();
 
 	}
+	
+	public String toString() {  
+		return calendarDocument.toString(); 
+		}
+	
+	private void openRawHTMLCalendarAsADocument(File input) {
+		try {
+			calendarDocument = Jsoup.parse(input, "UTF-8");
+		} catch (IOException e) {
+			System.out.println("Unable to open File : " + input.toString());
+			e.printStackTrace();
+		}
+	}
+	
+	private String getUnitNumber() {
+		
+		if (unitNumber == null) {
+			unitNumber = calendarDocument.select("font.CalendarItems b").first().text();
+		}
+		return unitNumber;
+	}
+	
+	private String getMonthAndYear() {
+		if(monthAndYear == null ) {
+			monthAndYear = removeNonBreakingSpaces(calendarDocument.select(".ScheduleViewLabel").text());
+		}
+		return monthAndYear;
+	}
+	
+	private void startCleaningHTMLUsingWhitelist() {
+		// / create a whitelist of allowed html tags and attributes
+		Whitelist whitey = new Whitelist();
+		whitey.addTags("td", "b", "font", "div", "a");
+		whitey.addAttributes("font", "class");
+		whitey.addAttributes("font", "color");
+		whitey.addAttributes("a", "class");
+		
+		// / run document thru the whitelist cleaner
+		Cleaner cleanDoc = new Cleaner(whitey);
+		calendarDocument = cleanDoc.clean(calendarDocument);
+	}
 
 	private void buidlHTMLCalendarPageAsADocument() {
 		String finalCalendar = ""; 
@@ -40,8 +82,15 @@ public class StationCalendar2 {
 
 		calendarDocument = Jsoup.parse(finalCalendar);
 	}
+	
+	private String buildHTMLHead() {
+		String doctype = "<!DOCTYPE html><html>\n";
+		String titleRow = "<title>" + getUnitNumber() + " " + getMonthAndYear() + "</title>\n";
+		return doctype + "<head>\n" + titleRow + STYLESHEET_LINK + "</head>\n";
+	}
 
 	private String buildHTMLBody() {
+		
 		String HTMLString ="";
 		HTMLString += "<body>\n"; 
 		HTMLString += "<table>\n";
@@ -51,65 +100,20 @@ public class StationCalendar2 {
 		HTMLString += returnBodyOfCalendarTable();
 		return HTMLString;
 	}
-
 	private String returnHTMLTableCaption() {
 		return " <caption>" + getMonthAndYear() + "</caption>\n";
 	}
-
 	private String returnDaysOfTheWeekTableHeader() {
 		return " <tr>\n  <th>Sunday</th>\n  <th>Monday</th>\n  <th>Tuesday</th>\n  <th>Wednesday</th>\n  <th>Thursday</th>\n  <th>Friday</th>\n  <th>Saturday</th> </tr>\n ";
 	}
-
-	private String buildHTMLHead() {
-		String doctype = "<!DOCTYPE html><html>\n";
-		String titleRow = "<title>" + getUnitNumber() + " " + getMonthAndYear() + "</title>\n";
-		return doctype + "<head>\n" + titleRow + STYLESHEET_LINK + "</head>\n";
-	}
-
-	private void openRawHTMLCalendarAsADocument(File input) {
-		try {
-			calendarDocument = Jsoup.parse(input, "UTF-8");
-		} catch (IOException e) {
-			System.out.println("Unable to open File : " + input.toString());
-			e.printStackTrace();
-		}
-	}
-
-	private void startCleaningHTMLUsingWhitelist() {
-		// / create a whitelist of allowed html tags and attributes
-		Whitelist whitey = new Whitelist();
-		whitey.addTags("td", "b", "font", "div", "a");
-		whitey.addAttributes("font", "class");
-		whitey.addAttributes("font", "color");
-		whitey.addAttributes("a", "class");
-
-		// / run document thru the whitelist cleaner
-		Cleaner cleanDoc = new Cleaner(whitey);
-		calendarDocument = cleanDoc.clean(calendarDocument);
-	}
-
-	private String getMonthAndYear() {
-		if(monthAndYear == null ) {
-			monthAndYear = removeNonBreakingSpaces(calendarDocument.select(".ScheduleViewLabel").text());
-		}
-		return monthAndYear;
-	}
-
-	private String getUnitNumber() {
-		if (unitNumber == null) {
-			unitNumber = calendarDocument.select("font.CalendarItems b").first().text();
-		}
-		return unitNumber;
-	}
-
 	private String returnBodyOfCalendarTable() {
 		String tableToBeReturned = "<tr>";
-
+		
 		removeUnitNumbers();
-	
+		
 		String classTagOfItemsInMySchedule = ".MyItems";
 		replace_MyItemsClass_With_GeneralItemClass(classTagOfItemsInMySchedule,classTag_Of_GeneralItems);
-
+		
 		replaceManyLablesForOpenShiftsWith_Open_class();
 		tableToBeReturned = makeBodyOfCalendarTable(tableToBeReturned);
 		tableToBeReturned = addClosingHTMLTags(tableToBeReturned);
@@ -117,15 +121,31 @@ public class StationCalendar2 {
 		tableToBeReturned = removeNonBreakingSpaces(tableToBeReturned); 
 		tableToBeReturned = removeLicenseLevels(tableToBeReturned);
 		tableToBeReturned = removeTimesWithinParens(tableToBeReturned); 
-
+		
 		return tableToBeReturned;
 	}
-
-	private String addClosingHTMLTags(String tableToBeReturned) {
-		tableToBeReturned += "</td>\n    </tr>\n   </tbody>\n  </table>\n </body>\n</html>";
-		return tableToBeReturned;
+	
+	private void removeUnitNumbers() {
+		String unitNumberOnEmployeeLine_DOMSelector = "font > b";
+		String unitNumberForOpenShifts_DOMSelector = "a > b";
+		String unitNumberDOMforEachDay_DOMSelector = "td > div";	
+		calendarDocument.select(unitNumberOnEmployeeLine_DOMSelector).remove(); 
+		calendarDocument.select(unitNumberForOpenShifts_DOMSelector).remove(); 
+		calendarDocument.select(unitNumberDOMforEachDay_DOMSelector).remove();
 	}
-
+	private void replace_MyItemsClass_With_GeneralItemClass(String targetClass, String replacementClass) {
+		calendarDocument.select(targetClass).addClass(replacementClass).removeClass(targetClass);
+		return;
+	}	
+	private void replaceManyLablesForOpenShiftsWith_Open_class() {
+		// looking for the many different keys that have been used to indicate
+		// open shifts and adding class=open
+	
+		calendarDocument.getElementsByAttributeValue("color", "red").select(".CalendarItems").addClass(classTag_For_OpenShifts);
+		calendarDocument.select(".PickupItems").wrap("<font class=\"CalendarItems open\">");
+		calendarDocument.select(".PickupLinkM").wrap("<font class=\"CalendarItems open\">");
+		return ;
+	}
 	private String makeBodyOfCalendarTable(String calendarTable) {
 		Elements items = calendarDocument.getElementsByTag("font");
 		
@@ -153,85 +173,66 @@ public class StationCalendar2 {
 		}
 		return calendarTable;
 	}
-
-	private void replace_MyItemsClass_With_GeneralItemClass(String targetClass, String replacementClass) {
-		calendarDocument.select(targetClass)
-						.addClass(replacementClass)
-						.removeClass(targetClass);
-		return;
-	}
-
-	private void removeUnitNumbers() {
-		String unitNumberOnEmployeeLine_DOMSelector = "font > b";
-		String unitNumberForOpenShifts_DOMSelector = "a > b";
-		String unitNumberDOMforEachDay_DOMSelector = "td > div";	
-		calendarDocument.select(unitNumberOnEmployeeLine_DOMSelector).remove(); 
-		calendarDocument.select(unitNumberForOpenShifts_DOMSelector).remove(); 
-		calendarDocument.select(unitNumberDOMforEachDay_DOMSelector).remove();
-	}
-
-	private void replaceManyLablesForOpenShiftsWith_Open_class() {
-		// looking for the many different keys that have been used to indicate
-		// open shifts and adding class=open
-	
-		calendarDocument.getElementsByAttributeValue("color", "red").select(".CalendarItems").addClass(classTag_For_OpenShifts);
-		calendarDocument.select(".PickupItems").wrap("<font class=\"CalendarItems open\">");
-		calendarDocument.select(".PickupLinkM").wrap("<font class=\"CalendarItems open\">");
-		return ;
-	}
-
-	private String removeTimesWithinParens(String tableToBeReturned) {
-		tableToBeReturned = tableToBeReturned.replaceAll("(\\(\\d:\\d\\d\\))", "");  // (0:00) formatted shift duration time spans
-		tableToBeReturned = tableToBeReturned.replaceAll("(\\(\\d\\d:\\d\\d\\))", ""); //(00:00) formatted shift duration time spans
+	private String addClosingHTMLTags(String tableToBeReturned) {
+		tableToBeReturned += "</td>\n    </tr>\n   </tbody>\n  </table>\n </body>\n</html>";
 		return tableToBeReturned;
 	}
-
 	private String removeNonBreakingSpaces(String returnString) {
 		return returnString.replaceAll("\\u00A0", " ");
 	}
-	
 	private String removeLicenseLevels(String returnString) {
 		returnString = returnString.replaceAll("[SJ]R MEDIC :", " "); 
 		returnString = returnString.replaceAll("EMT(/S)? :", " ");
 		returnString = returnString.replaceAll("Supervisor :", "");
 		return returnString;
 	}
-	
-	private void shadeTheDaysFromOtherMonths() {
+	private String removeTimesWithinParens(String tableToBeReturned) {
+		tableToBeReturned = tableToBeReturned.replaceAll("(\\(\\d:\\d\\d\\))", "");  // (0:00) formatted shift duration time spans
+		tableToBeReturned = tableToBeReturned.replaceAll("(\\(\\d\\d:\\d\\d\\))", ""); //(00:00) formatted shift duration time spans
+		return tableToBeReturned;
+	}
 
+	private void shadeTheDaysFromOtherMonths() {
+		
 		Document localDoc;
 		boolean shadeDays = true;
 		int todaysDate, yesterdaysDate = 0;
-
+		
 		localDoc = calendarDocument; 
-
+		
 		// find dates from the previous month that are at the beginning of the calendar
 		for (Element day : localDoc.select("td > span:eq(0)")) {
 			todaysDate = Integer.parseInt(day.text().toString());
-
+			
 			if ((todaysDate == 1) && (yesterdaysDate == 0)) {
 				shadeDays = Boolean.logicalXor(shadeDays, true); 
 			} // checks to see if the first day of the month falls on the first
 			// day of the calendar
-
+			
 			if (todaysDate < yesterdaysDate) { // toggles shading at the end of the month
 				shadeDays = Boolean.logicalXor(shadeDays, true);
 			}
-
+			
 			if (shadeDays == true) {
 				day.parent().addClass("DayIsInAnotherMonth");
 			}
 			yesterdaysDate = todaysDate;
 		}
 		calendarDocument = localDoc;
-
+		
 		return;
 	}
 
-	public String toString() {  
-		return calendarDocument.toString(); 
-		}
+	
 
+
+
+
+
+
+	
+
+	
 
 	// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////main
 	/**
